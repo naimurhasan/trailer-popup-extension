@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Trailer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Movie Trailer</h1>
+      <div id="searchQuery" class="search-query"></div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading trailer...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;">
+      <p>Could not load trailer. Please try again.</p>
+      <button id="retryBtn">Retry</button>
+    </div>
+
+    <div id="videoContainer" class="video-container" style="display: none;">
+      <iframe
+        id="videoPlayer"
+        width="100%"
+        height="100%"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
