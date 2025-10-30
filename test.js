@@ -49,11 +49,10 @@ function cleanMovieTitle(rawTitle) {
     title = title.split(separators)[0];
   }
 
-  // Remove year in parentheses or brackets (e.g., "(2024)" or "[2024]")
-  title = title.replace(/[\(\[]\s*\d{4}\s*[\)\]]/g, '');
-
-  // Remove standalone years (e.g., "2024", "2023")
-  title = title.replace(/\b(19|20)\d{2}\b/g, '');
+  // Years are kept in all cases now
+  // - Years in parentheses/brackets: "Movie (2024)" - intentional identifiers
+  // - Years after title: "O-Kay 2024" - part of the movie identity
+  // The quality tags removal above already cleaned unnecessary info
 
   // Remove season/episode patterns (e.g., "S01E01", "Season 1")
   title = title.replace(/\b(S\d{1,2}E\d{1,2}|Season\s*\d+|Episode\s*\d+)\b/gi, '');
@@ -106,23 +105,27 @@ function testCleanMovieTitle() {
   const testCases = [
     {
       input: "Thamma (2025) Best Qualty – WEB-DL H264 AAC 1080p 720p 480p Download & Watch FREE",
-      expected: "Thamma"
+      expected: "Thamma (2025)"
     },
     {
       input: "Spider-Man: No Way Home (2021) 1080p BluRay x264",
-      expected: "Spider-Man: No Way Home"
+      expected: "Spider-Man: No Way Home (2021)"
     },
     {
       input: "The Batman – 4K UHD BluRay x265 HEVC 10bit",
       expected: "The Batman"
     },
     {
+      input: "The Batman (2022) – 4K UHD BluRay x265 HEVC 10bit",
+      expected: "The Batman (2022)"
+    },
+    {
       input: "O-Kay 2024 WEB-DL 720p Hindi",
-      expected: "O-Kay"
+      expected: "O-Kay 2024"
     },
     {
       input: "Inception (2010) 1080p BRRip x264 AAC",
-      expected: "Inception"
+      expected: "Inception (2010)"
     },
     {
       input: "Breaking Bad S01E01 720p WEBRip",
@@ -130,7 +133,7 @@ function testCleanMovieTitle() {
     },
     {
       input: "Avatar: The Way of Water (2022) | 4K 2160p | Download",
-      expected: "Avatar: The Way of Water"
+      expected: "Avatar: The Way of Water (2022)"
     },
     {
       input: "The Lord of the Rings: The Fellowship of the Ring Extended Edition BluRay 1080p",
@@ -138,19 +141,19 @@ function testCleanMovieTitle() {
     },
     {
       input: "Deadpool & Wolverine 2024 CAM x264",
-      expected: "Deadpool & Wolverine"
+      expected: "Deadpool & Wolverine 2024"
     },
     {
       input: "Dune Part Two (2024) – IMAX 4K HDR WEB-DL",
-      expected: "Dune Part Two"
+      expected: "Dune Part Two (2024)"
     },
     {
       input: "John Wick: Chapter 4 (2023) 1080p 720p 480p WEB-DL x264 ESub",
-      expected: "John Wick: Chapter 4"
+      expected: "John Wick: Chapter 4 (2023)"
     },
     {
       input: "Oppenheimer [2023] UHD BluRay 2160p TrueHD Atmos 7.1 HEVC",
-      expected: "Oppenheimer"
+      expected: "Oppenheimer [2023]"
     }
   ];
 

@@ -44,11 +44,10 @@ function cleanMovieTitle(rawTitle) {
     title = title.split(separators)[0];
   }
 
-  // Remove year in parentheses or brackets (e.g., "(2024)" or "[2024]")
-  title = title.replace(/[\(\[]\s*\d{4}\s*[\)\]]/g, '');
-
-  // Remove standalone years (e.g., "2024", "2023")
-  title = title.replace(/\b(19|20)\d{2}\b/g, '');
+  // Years are kept in all cases now
+  // - Years in parentheses/brackets: "Movie (2024)" - intentional identifiers
+  // - Years after title: "O-Kay 2024" - part of the movie identity
+  // The quality tags removal above already cleaned unnecessary info
 
   // Remove season/episode patterns (e.g., "S01E01", "Season 1")
   title = title.replace(/\b(S\d{1,2}E\d{1,2}|Season\s*\d+|Episode\s*\d+)\b/gi, '');
