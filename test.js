@@ -1,6 +1,9 @@
 /**
  * Standalone test file for cleanMovieTitle function
  * Can be run with: node test.js
+ *
+ * Note: This duplicates the function from background.js for Node.js testing.
+ * The source of truth is in background.js - keep them in sync.
  */
 
 /**
