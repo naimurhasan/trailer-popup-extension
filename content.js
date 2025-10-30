@@ -1,10 +1,11 @@
 /**
  * Content Script - Floating Trailer Button
- * Shows a floating button when text is selected
+ * Shows a floating button when text is selected or element is clicked
  */
 
 let floatingButton = null;
 let selectionTimeout = null;
+let currentSearchText = null; // Stores text for trailer search
 
 // Initialize
 function init() {
@@ -42,7 +43,7 @@ function createFloatingButton() {
 
 // Attach event listeners
 function attachListeners() {
-  // Show button ONLY on Alt+Right-click over selected text
+  // Show button on Alt+Right-click (with selection OR extract from element)
   document.addEventListener('contextmenu', (e) => {
     // Only show button if Alt key is pressed (Option on Mac)
     if (!e.altKey) {
@@ -54,10 +55,17 @@ function attachListeners() {
     const selectedText = selection.toString().trim();
 
     if (selectedText.length >= 3) {
-      // Show button near the right-click position
-      showButtonAtPosition(e.clientX, e.clientY);
+      // Text is selected - use selected text
+      showButtonAtPosition(e.clientX, e.clientY, selectedText);
     } else {
-      hideButton();
+      // No selection - try to extract from clicked element
+      const extractedText = extractMovieTitleFromElement(e.target);
+
+      if (extractedText && extractedText.length >= 3) {
+        showButtonAtPosition(e.clientX, e.clientY, extractedText);
+      } else {
+        hideButton();
+      }
     }
   });
 
@@ -82,8 +90,132 @@ function attachListeners() {
   window.addEventListener('resize', hideButton);
 }
 
+/**
+ * Intelligently extracts movie title from clicked HTML element
+ * Handles various website structures and DOM patterns
+ * @param {HTMLElement} element - The clicked element
+ * @returns {string} - Extracted text or empty string
+ */
+function extractMovieTitleFromElement(element) {
+  if (!element || element === document.body || element === document.documentElement) {
+    return '';
+  }
+
+  // STRATEGY 1: Check for data attributes (common in modern web apps)
+  const dataAttributes = [
+    'data-title',
+    'data-name',
+    'data-movie-title',
+    'data-video-title',
+    'aria-label',
+    'title'
+  ];
+
+  for (const attr of dataAttributes) {
+    const value = element.getAttribute(attr);
+    if (value && value.trim().length >= 3 && value.trim().length <= 150) {
+      return value.trim();
+    }
+  }
+
+  // STRATEGY 2: Look for common title selectors within clicked element
+  const titleSelectors = [
+    '.title',
+    '.movie-title',
+    '.video-title',
+    '.name',
+    '.film-title',
+    'h1', 'h2', 'h3', 'h4',
+    '[class*="title"]',
+    '[class*="name"]'
+  ];
+
+  for (const selector of titleSelectors) {
+    const titleElement = element.querySelector(selector);
+    if (titleElement) {
+      const text = (titleElement.innerText || titleElement.textContent || '').trim();
+      if (text.length >= 3 && text.length <= 150) {
+        return text;
+      }
+    }
+  }
+
+  // STRATEGY 3: Try closest parent container (movie card, article, etc.)
+  const containerSelectors = [
+    '.movie-card',
+    '.video-card',
+    '.film-card',
+    '.card',
+    'article',
+    '.item',
+    '[class*="movie"]',
+    '[class*="video"]'
+  ];
+
+  for (const selector of containerSelectors) {
+    const container = element.closest(selector);
+    if (container && container !== element) {
+      // Check if container has title selector
+      for (const titleSelector of titleSelectors) {
+        const titleElement = container.querySelector(titleSelector);
+        if (titleElement) {
+          const text = (titleElement.innerText || titleElement.textContent || '').trim();
+          if (text.length >= 3 && text.length <= 150) {
+            return text;
+          }
+        }
+      }
+    }
+  }
+
+  // STRATEGY 4: Use element's own text content
+  let text = element.innerText || element.textContent || '';
+  text = text.trim();
+
+  // If text is too long, it's likely a description or full page content
+  if (text.length > 150) {
+    // Try to find title within the text
+    // Look for heading tags first
+    const heading = element.querySelector('h1, h2, h3');
+    if (heading) {
+      text = (heading.innerText || heading.textContent || '').trim();
+    } else {
+      // Take first line (often the title)
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      text = lines[0] || '';
+    }
+  }
+
+  // STRATEGY 5: If text is too short, try parent element (max 3 levels up)
+  if (text.length < 3) {
+    const parent = element.parentElement;
+    if (parent && parent !== document.body && parent !== document.documentElement) {
+      // Prevent infinite recursion - check if we've already tried this parent
+      const parentText = extractMovieTitleFromElement(parent);
+      if (parentText && parentText !== text) {
+        return parentText;
+      }
+    }
+  }
+
+  // Final validation
+  if (text.length >= 3 && text.length <= 150) {
+    return text;
+  }
+
+  return '';
+}
+
 // Show the floating button at a specific position (near right-click)
-function showButtonAtPosition(clientX, clientY) {
+function showButtonAtPosition(clientX, clientY, textToShow = null) {
+  // Store text for later use
+  if (textToShow) {
+    currentSearchText = textToShow;
+  } else {
+    // Fallback to selection if no text provided
+    const selection = window.getSelection();
+    currentSearchText = selection.toString().trim();
+  }
   // Calculate button position with smart auto-positioning
   const buttonWidth = 110;
   const buttonHeight = 40;
@@ -143,21 +275,21 @@ function hideButton() {
 
 // Handle trailer button click
 function handleTrailerClick() {
-  const selection = window.getSelection();
-  const selectedText = selection.toString().trim();
+  // Use stored text instead of relying on selection
+  const searchText = currentSearchText;
 
-  if (selectedText) {
+  if (searchText) {
     // Send message to background script to open trailer
     chrome.runtime.sendMessage({
       action: 'searchTrailer',
-      query: selectedText
+      query: searchText
     });
 
     // Hide the button
     hideButton();
 
-    // Clear selection (optional - comment out if you want to keep selection)
-    // selection.removeAllRanges();
+    // Clear stored text
+    currentSearchText = null;
   }
 }
 
