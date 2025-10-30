@@ -17,14 +17,38 @@ function cleanMovieTitle(rawTitle) {
 
   let title = rawTitle.trim();
 
-  // Remove common quality/format patterns (case insensitive)
+  // PHASE 1: Early truncation at "stop words" (quality indicators)
+  // This prevents processing junk and leaves cleaner results
+  const stopWords = [
+    'WEB-DL', 'WEBRip', 'BluRay', 'Blu-Ray', 'BRRip', 'DVDRip', 'HDRip', 'HDTV',
+    'Dual Audio', 'Multi Audio', 'Dubbed',
+    'GDrive', 'GDRive', 'Download', 'Watch Online',
+    '480p', '720p', '1080p', '2160p', '4K'
+  ];
+
+  const stopWordPattern = new RegExp(`\\b(${stopWords.join('|')})\\b`, 'i');
+  const stopMatch = title.search(stopWordPattern);
+  if (stopMatch !== -1) {
+    title = title.substring(0, stopMatch);
+  }
+
+  // Split on long dashes/separators (–, —, |, ::) and take the first part
+  // These are usually separators between title and quality info
+  const separators = /[–—|]|::/;
+  if (separators.test(title)) {
+    title = title.split(separators)[0];
+  }
+
+  // PHASE 2: Remove quality/format patterns (for any remaining junk)
   const qualityPatterns = [
+    // Audio/Language phrases (match phrases first, before individual words)
+    /\b(Dual\s+Audio|Multi\s+Audio|Dubbed|Original\s+Audio)\b/gi,
     // Resolutions
     /\b(4K|2160p|1080p|720p|480p|360p|240p|UHD|HD|SD)\b/gi,
     // Codecs & formats
     /\b(H\.?264|H\.?265|x264|x265|HEVC|AVC|AAC|MP3|AC3|DTS|FLAC)\b/gi,
     // Sources
-    /\b(WEB-?DL|WEBRip|BluRay|BRRip|DVDRip|HDRip|CAM|TS|TC|IMAX)\b/gi,
+    /\b(WEB-?DL|WEBRip|BluRay|Blu-Ray|BRRip|DVDRip|HDRip|CAM|TS|TC|IMAX)\b/gi,
     // File extensions
     /\.(mkv|mp4|avi|mov|wmv|flv|webm)\b/gi,
     // Additional quality info
@@ -33,8 +57,8 @@ function cleanMovieTitle(rawTitle) {
     /\b(Download|Watch|Stream|Online|FREE|Full Movie|Episode)\b/gi,
     // Common separators with junk
     /\b(Best Qualty?|Best Quality?|High Quality?|Full HD|Ultra HD)\b/gi,
-    // Subtitles & Audio
-    /\b(ESub|MSub|Multi|Dual|TrueHD|Atmos|DTS-HD|Hindi|English|Tamil|Telugu)\b/gi,
+    // Subtitles & Audio & Languages (including "Audio" standalone)
+    /\b(ESub|MSub|Multi|Dual|TrueHD|Atmos|DTS-HD|Hindi|English|Tamil|Telugu|Audio)\b/gi,
     // Audio channels
     /\b(\d+\.\d+)\b/g,
     // Extended/Special editions
@@ -45,13 +69,6 @@ function cleanMovieTitle(rawTitle) {
     title = title.replace(pattern, ' ');
   });
 
-  // Split on long dashes/separators (–, —, |, ::) and take the first part
-  // These are usually separators between title and quality info
-  const separators = /[–—|]|::/;
-  if (separators.test(title)) {
-    title = title.split(separators)[0];
-  }
-
   // Years are kept in all cases now
   // - Years in parentheses/brackets: "Movie (2024)" - intentional identifiers
   // - Years after title: "O-Kay 2024" - part of the movie identity
@@ -59,6 +76,11 @@ function cleanMovieTitle(rawTitle) {
 
   // Remove season/episode patterns (e.g., "S01E01", "Season 1")
   title = title.replace(/\b(S\d{1,2}E\d{1,2}|Season\s*\d+|Episode\s*\d+)\b/gi, '');
+
+  // PHASE 3: Cleanup empty brackets and leftover punctuation
+  // Remove empty brackets/parentheses: [], (), [,], [, ,], etc.
+  title = title.replace(/[\[\(]\s*[,;\s]*\s*[\]\)]/g, '');
+  title = title.replace(/[\[\(][,;\s]+[\]\)]/g, '');
 
   // Clean up multiple spaces and trim
   title = title.replace(/\s+/g, ' ').trim();
@@ -90,8 +112,14 @@ function cleanMovieTitle(rawTitle) {
     }
   }
 
-  // Final cleanup: remove trailing special characters
-  title = title.replace(/[\s\-_:,;]+$/, '').trim();
+  // PHASE 4: Final cleanup - remove trailing/leading special characters
+  // But preserve closing parens/brackets that are part of years like "(2025)" or "[2023]"
+  // And preserve & when it's part of the title like "Deadpool & Wolverine"
+  title = title.replace(/[\s\-_:,;|]+$/, '').trim(); // trailing punctuation (not & or brackets)
+  title = title.replace(/^[\s\-_:,;|&\[\]()]+/, '').trim();  // leading junk
+
+  // Remove standalone punctuation (but not & between words)
+  title = title.replace(/\s+[,;|]+\s+/g, ' ').trim();
 
   // If we ended up with nothing, return the original (truncated)
   if (title.length === 0) {
@@ -106,6 +134,10 @@ function cleanMovieTitle(rawTitle) {
  */
 function testCleanMovieTitle() {
   const testCases = [
+    {
+      input: "Idly Kadai (2025) Dual Audio [Tamil, Hindi] WEB-DL, 480P, 720P & 1080P | GDRive",
+      expected: "Idly Kadai (2025)"
+    },
     {
       input: "Thamma (2025) Best Qualty – WEB-DL H264 AAC 1080p 720p 480p Download & Watch FREE",
       expected: "Thamma (2025)"

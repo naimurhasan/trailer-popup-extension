@@ -42,8 +42,14 @@ function createFloatingButton() {
 
 // Attach event listeners
 function attachListeners() {
-  // Show button ONLY on right-click over selected text
+  // Show button ONLY on Alt+Right-click over selected text
   document.addEventListener('contextmenu', (e) => {
+    // Only show button if Alt key is pressed (Option on Mac)
+    if (!e.altKey) {
+      hideButton();
+      return;
+    }
+
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
 
