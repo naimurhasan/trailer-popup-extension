@@ -105,21 +105,35 @@ chrome.runtime.onInstalled.addListener(() => {
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId === "showTrailer" && info.selectionText) {
-    // Clean up the selected text to extract just the movie/show name
-    const cleanedTitle = cleanMovieTitle(info.selectionText);
-
-    // Use Google's "I'm Feeling Lucky" to directly open the first YouTube result
-    // This searches: "movie name" official trailer site:youtube.com
-    const searchQuery = encodeURIComponent(`"${cleanedTitle}" official trailer site:youtube.com`);
-    const googleLuckyUrl = `https://www.google.com/search?btnI=1&q=${searchQuery}`;
-
-    // Open in a popup window
-    chrome.windows.create({
-      url: googleLuckyUrl,
-      type: "popup",
-      width: 1000,
-      height: 700,
-      focused: true
-    });
+    openTrailer(info.selectionText);
   }
 });
+
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === "searchTrailer") {
+    openTrailer(message.query);
+    sendResponse({success: true});
+  }
+  return true;
+});
+
+// Open trailer in popup window
+function openTrailer(rawText) {
+  // Clean up the selected text to extract just the movie/show name
+  const cleanedTitle = cleanMovieTitle(rawText);
+
+  // Use Google's "I'm Feeling Lucky" to directly open the first YouTube result
+  // This searches: "movie name" official trailer site:youtube.com
+  const searchQuery = encodeURIComponent(`"${cleanedTitle}" official trailer site:youtube.com`);
+  const googleLuckyUrl = `https://www.google.com/search?btnI=1&q=${searchQuery}`;
+
+  // Open in a popup window
+  chrome.windows.create({
+    url: googleLuckyUrl,
+    type: "popup",
+    width: 1000,
+    height: 700,
+    focused: true
+  });
+}

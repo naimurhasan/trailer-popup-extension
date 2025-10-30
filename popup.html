@@ -18,6 +18,18 @@
       <p>Loading trailer...</p>
     </div>
 
+    <div id="manualInput" class="manual-input" style="display: none;">
+      <p class="instruction">Enter movie or show name:</p>
+      <input
+        type="text"
+        id="movieInput"
+        placeholder="e.g. Inception, Breaking Bad..."
+        autocomplete="off"
+      >
+      <button id="searchBtn" class="search-btn">Search Trailer</button>
+      <p class="tip">💡 Tip: Select text on any page, then click this extension icon for faster search</p>
+    </div>
+
     <div id="error" class="error" style="display: none;">
       <p>Could not load trailer. Please try again.</p>
       <button id="retryBtn">Retry</button>

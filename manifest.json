@@ -5,11 +5,21 @@
   "description": "Right-click selected text to watch movie trailers in a popup",
   "permissions": [
     "contextMenus",
-    "storage"
+    "storage",
+    "activeTab",
+    "scripting"
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
