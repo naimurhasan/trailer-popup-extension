@@ -54,7 +54,7 @@ function cleanMovieTitle(rawTitle) {
     // Additional quality info
     /\b(10bit|8bit|HDR|SDR)\b/gi,
     // Promotional text
-    /\b(Download|Watch|Stream|Online|FREE|Full Movie|Episode)\b/gi,
+    /\b(Download|Watch|Stream|Online|FREE|Full Movie)\b/gi,
     // Common separators with junk
     /\b(Best Qualty?|Best Quality?|High Quality?|Full HD|Ultra HD)\b/gi,
     // Subtitles & Audio & Languages (including "Audio" standalone)
@@ -74,8 +74,11 @@ function cleanMovieTitle(rawTitle) {
   // - Years after title: "O-Kay 2024" - part of the movie identity
   // The quality tags removal above already cleaned unnecessary info
 
-  // Remove season/episode patterns (e.g., "S01E01", "Season 1")
-  title = title.replace(/\b(S\d{1,2}E\d{1,2}|Season\s*\d+|Episode\s*\d+)\b/gi, '');
+  // Remove season/episode patterns (e.g., "S01E01", "S1", "Season 1", "EP 1")
+  // First remove patterns inside brackets/parens: [Episode 6], (S01), [EP 3], etc.
+  title = title.replace(/[\[\(]\s*(S\d{1,2}(E\d{1,2})?|Season\s*\d+|Episode\s*\d+|EP\s*\d+)\s*[\]\)]/gi, '');
+  // Then remove standalone patterns
+  title = title.replace(/\b(S\d{1,2}(E\d{1,2})?|Season\s*\d+|Episode\s*\d+|EP\s*\d+)\b/gi, '');
 
   // PHASE 3: Cleanup empty brackets and leftover punctuation
   // Remove empty brackets/parentheses: [], (), [,], [, ,], etc.
@@ -120,6 +123,15 @@ function cleanMovieTitle(rawTitle) {
 
   // Remove standalone punctuation (but not & between words)
   title = title.replace(/\s+[,;|]+\s+/g, ' ').trim();
+
+  // PHASE 5: Handle truncation artifacts
+  // If title was cut and left fragments before [ or ( like "Title S1 [" or "Title EP [",
+  // remove everything from the last space before such patterns
+  // Match patterns like: "S1", "S01", "EP 1", "Episode", etc. followed by [ or (
+  title = title.replace(/\s+(S\d+|EP\s*\d*|Episode\s*\d*)\s*[\[\(]?\s*$/, '').trim();
+
+  // Also clean up if brackets/parens are left open at the end without closing
+  title = title.replace(/[\[\(]\s*$/, '').trim();
 
   // If we ended up with nothing, return the original (truncated)
   if (title.length === 0) {
@@ -189,6 +201,22 @@ function testCleanMovieTitle() {
     {
       input: "Oppenheimer [2023] UHD BluRay 2160p TrueHD Atmos 7.1 HEVC",
       expected: "Oppenheimer [2023]"
+    },
+    {
+      input: "It: Welcome to Derry S1 (2025) [EP 1",
+      expected: "It: Welcome to Derry (2025)"
+    },
+    {
+      input: "Stranger Things S4 (2022) [EP 5",
+      expected: "Stranger Things (2022)"
+    },
+    {
+      input: "Game of Thrones S08 [Episode 6] 1080p",
+      expected: "Game of Thrones"
+    },
+    {
+      input: "The Last of Us EP 3 (2023) [",
+      expected: "The Last of Us (2023)"
     }
   ];
 
