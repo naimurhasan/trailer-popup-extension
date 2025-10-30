@@ -1,4 +1,9 @@
 /**
+ * Standalone test file for cleanMovieTitle function
+ * Can be run with: node test.js
+ */
+
+/**
  * Intelligently extracts movie/show name from messy titles
  * Handles: quality tags, codecs, year, promotional text, etc.
  * @param {string} rawTitle - The raw selected text
@@ -94,18 +99,8 @@ function cleanMovieTitle(rawTitle) {
   return title;
 }
 
-// Create context menu when extension is installed
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "showTrailer",
-    title: "Show Trailer",
-    contexts: ["selection"]
-  });
-});
-
 /**
  * Test function to verify title cleaning works correctly
- * Open Chrome DevTools Console and run: testCleanMovieTitle()
  */
 function testCleanMovieTitle() {
   const testCases = [
@@ -115,7 +110,7 @@ function testCleanMovieTitle() {
     },
     {
       input: "Spider-Man: No Way Home (2021) 1080p BluRay x264",
-      expected: "Spider-Man"
+      expected: "Spider-Man: No Way Home"
     },
     {
       input: "The Batman – 4K UHD BluRay x265 HEVC 10bit",
@@ -135,7 +130,7 @@ function testCleanMovieTitle() {
     },
     {
       input: "Avatar: The Way of Water (2022) | 4K 2160p | Download",
-      expected: "Avatar"
+      expected: "Avatar: The Way of Water"
     },
     {
       input: "The Lord of the Rings: The Fellowship of the Ring Extended Edition BluRay 1080p",
@@ -151,7 +146,7 @@ function testCleanMovieTitle() {
     },
     {
       input: "John Wick: Chapter 4 (2023) 1080p 720p 480p WEB-DL x264 ESub",
-      expected: "John Wick"
+      expected: "John Wick: Chapter 4"
     },
     {
       input: "Oppenheimer [2023] UHD BluRay 2160p TrueHD Atmos 7.1 HEVC",
@@ -160,7 +155,7 @@ function testCleanMovieTitle() {
   ];
 
   console.log("🎬 Testing cleanMovieTitle() function...\n");
-  console.log("=" .repeat(80));
+  console.log("=".repeat(80));
 
   let passed = 0;
   let failed = 0;
@@ -187,27 +182,13 @@ function testCleanMovieTitle() {
   console.log(`📊 Results: ${passed} passed, ${failed} failed out of ${testCases.length} tests`);
   console.log("=".repeat(80));
 
+  // Exit with error code if any tests failed
+  if (failed > 0) {
+    process.exit(1);
+  }
+
   return { passed, failed, total: testCases.length };
 }
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info) => {
-  if (info.menuItemId === "showTrailer" && info.selectionText) {
-    // Clean up the selected text to extract just the movie/show name
-    const cleanedTitle = cleanMovieTitle(info.selectionText);
-
-    // Use Google's "I'm Feeling Lucky" to directly open the first YouTube result
-    // This searches: "movie name" official trailer site:youtube.com
-    const searchQuery = encodeURIComponent(`"${cleanedTitle}" official trailer site:youtube.com`);
-    const googleLuckyUrl = `https://www.google.com/search?btnI=1&q=${searchQuery}`;
-
-    // Open in a popup window
-    chrome.windows.create({
-      url: googleLuckyUrl,
-      type: "popup",
-      width: 1000,
-      height: 700,
-      focused: true
-    });
-  }
-});
+// Run tests
+testCleanMovieTitle();

@@ -1,0 +1,16 @@
+{
+  "name": "movie-trailer-popup",
+  "version": "1.0.0",
+  "description": "Chrome extension to watch movie trailers via Google I'm Feeling Lucky search",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "movie",
+    "trailer",
+    "youtube"
+  ],
+  "author": "",
+  "license": "MIT"
+}

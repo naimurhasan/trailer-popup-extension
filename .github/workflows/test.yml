@@ -1,0 +1,50 @@
+name: Test Movie Trailer Extension
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]  # Test on multiple Node.js versions
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run title cleaning tests
+        run: node test.js
+
+      - name: Validate manifest.json
+        run: |
+          echo "Validating manifest.json..."
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
+          echo "✅ manifest.json is valid JSON"
+
+      - name: Check for required files
+        run: |
+          echo "Checking for required extension files..."
+          test -f manifest.json && echo "✅ manifest.json found" || exit 1
+          test -f background.js && echo "✅ background.js found" || exit 1
+          test -f popup.html && echo "✅ popup.html found" || exit 1
+          test -f popup.js && echo "✅ popup.js found" || exit 1
+          test -f popup.css && echo "✅ popup.css found" || exit 1
+          echo "All required files present!"
+
+      - name: Test summary
+        if: success()
+        run: |
+          echo "🎉 All tests passed!"
+          echo "Extension is ready for deployment"
