@@ -52,7 +52,6 @@ function loadTrailer() {
   chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
     if (!tabs || tabs.length === 0) {
       // No active tab, show manual input
-      console.log('No active tab found');
       showManualInput();
       return;
     }
@@ -66,13 +65,11 @@ function loadTrailer() {
         // Force fresh selection capture
         const selection = window.getSelection();
         const text = selection.toString();
-        console.log('Captured selection:', text);
         return text;
       }
     }, (results) => {
       if (chrome.runtime.lastError) {
         // Can't access tab (e.g., chrome:// pages, PDF viewers, etc.)
-        console.log('Cannot access tab:', chrome.runtime.lastError.message);
         showManualInput();
         return;
       }
@@ -81,11 +78,9 @@ function loadTrailer() {
 
       if (selectedText && selectedText.trim().length > 0) {
         // Text was selected, search for trailer immediately
-        console.log('Text selected, searching for:', selectedText.trim());
         searchTrailer(selectedText.trim());
       } else {
         // No text selected, show manual input
-        console.log('No text selected, showing manual input');
         showManualInput();
       }
     });

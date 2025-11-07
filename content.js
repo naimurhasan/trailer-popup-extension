@@ -6,10 +6,14 @@
 let floatingButton = null;
 let selectionTimeout = null;
 let currentSearchText = null; // Stores text for trailer search
+let confirmPopup = null;
+let popupOverlay = null;
+let originalText = null; // Stores the original unprocessed text
 
 // Initialize
 function init() {
   createFloatingButton();
+  createConfirmationPopup();
   attachListeners();
 }
 
@@ -273,16 +277,184 @@ function hideButton() {
   }, 200);
 }
 
+// Create confirmation popup
+function createConfirmationPopup() {
+  // Check if body exists
+  if (!document.body) {
+    return;
+  }
+
+  // Remove existing popup if any
+  const existingPopup = document.getElementById('movie-trailer-confirm-popup');
+  const existingOverlay = document.getElementById('movie-trailer-popup-overlay');
+  if (existingPopup) existingPopup.remove();
+  if (existingOverlay) existingOverlay.remove();
+
+  // Create overlay
+  popupOverlay = document.createElement('div');
+  popupOverlay.id = 'movie-trailer-popup-overlay';
+  popupOverlay.style.display = 'none';
+  document.body.appendChild(popupOverlay);
+
+  // Create popup
+  confirmPopup = document.createElement('div');
+  confirmPopup.id = 'movie-trailer-confirm-popup';
+  confirmPopup.style.display = 'none';
+  confirmPopup.innerHTML = `
+    <div class="popup-title">Confirm Movie/Show Name</div>
+    <div class="popup-content">
+      <div class="input-wrapper">
+        <input type="text" id="movie-name-input" placeholder="Movie or show name" />
+        <div class="search-suffix">official trailer</div>
+      </div>
+      <div class="popup-buttons">
+        <button class="cancel-btn" id="cancel-btn">Cancel</button>
+        <button class="confirm-btn" id="confirm-btn">Search Trailer</button>
+      </div>
+      <div class="original-text" id="original-text-display"></div>
+    </div>
+  `;
+  document.body.appendChild(confirmPopup);
+
+  // Add event listeners
+  const confirmBtn = confirmPopup.querySelector('#confirm-btn');
+  const cancelBtn = confirmPopup.querySelector('#cancel-btn');
+  const input = confirmPopup.querySelector('#movie-name-input');
+
+  confirmBtn.addEventListener('click', handleConfirmClick);
+  cancelBtn.addEventListener('click', hideConfirmPopup);
+  popupOverlay.addEventListener('click', hideConfirmPopup);
+
+  // Allow Enter key to confirm
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      handleConfirmClick();
+    }
+  });
+
+  // Allow Escape key to cancel
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && confirmPopup && confirmPopup.classList.contains('show')) {
+      hideConfirmPopup();
+    }
+  });
+}
+
+// Show confirmation popup
+function showConfirmPopup(cleanedTitle, rawText) {
+  // Ensure popup exists
+  if (!confirmPopup || !popupOverlay) {
+    createConfirmationPopup();
+    // Retry after creation
+    if (!confirmPopup || !popupOverlay) {
+      return;
+    }
+  }
+
+  const input = confirmPopup.querySelector('#movie-name-input');
+  const originalTextDisplay = confirmPopup.querySelector('#original-text-display');
+
+  if (!input || !originalTextDisplay) {
+    return;
+  }
+
+  // Set the cleaned title in the input
+  input.value = cleanedTitle;
+
+  // Show original text if it's different from cleaned title
+  if (rawText !== cleanedTitle) {
+    originalTextDisplay.innerHTML = `<strong>Original text:</strong> ${escapeHtml(rawText)}`;
+    originalTextDisplay.style.display = 'block';
+  } else {
+    originalTextDisplay.style.display = 'none';
+  }
+
+  // Make elements visible first
+  popupOverlay.style.display = 'block';
+  confirmPopup.style.display = 'block';
+
+  // Show popup with animation
+  setTimeout(() => {
+    popupOverlay.classList.add('show');
+    confirmPopup.classList.add('show');
+    // Focus the input and select all text
+    input.focus();
+    input.select();
+  }, 10);
+}
+
+// Hide confirmation popup
+function hideConfirmPopup() {
+  if (!confirmPopup || !popupOverlay) return;
+
+  popupOverlay.classList.remove('show');
+  confirmPopup.classList.remove('show');
+
+  // Hide after animation completes
+  setTimeout(() => {
+    if (popupOverlay) popupOverlay.style.display = 'none';
+    if (confirmPopup) confirmPopup.style.display = 'none';
+  }, 200);
+
+  originalText = null;
+}
+
+// Handle confirm button click
+function handleConfirmClick() {
+  const input = confirmPopup.querySelector('#movie-name-input');
+  const movieName = input.value.trim();
+
+  if (movieName) {
+    // Send message to background script to open trailer
+    chrome.runtime.sendMessage({
+      action: 'searchTrailer',
+      query: movieName
+    });
+
+    // Hide popup
+    hideConfirmPopup();
+  }
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Handle trailer button click
 function handleTrailerClick() {
   // Use stored text instead of relying on selection
   const searchText = currentSearchText;
 
   if (searchText) {
-    // Send message to background script to open trailer
+    // Store original text
+    originalText = searchText;
+
+    // Request cleaned title from background script
     chrome.runtime.sendMessage({
-      action: 'searchTrailer',
-      query: searchText
+      action: 'cleanTitle',
+      text: searchText
+    }, (response) => {
+      if (response && response.cleanedTitle) {
+        // Only show confirmation popup if the cleaned title is different from original
+        if (response.cleanedTitle !== searchText) {
+          showConfirmPopup(response.cleanedTitle, searchText);
+        } else {
+          // If they're the same, directly search for the trailer
+          chrome.runtime.sendMessage({
+            action: 'searchTrailer',
+            query: searchText
+          });
+        }
+      } else {
+        // Fallback: directly search with original text
+        chrome.runtime.sendMessage({
+          action: 'searchTrailer',
+          query: searchText
+        });
+      }
     });
 
     // Hide the button
@@ -293,9 +465,55 @@ function handleTrailerClick() {
   }
 }
 
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === 'showConfirmation' && message.text) {
+    // Clean the title and show confirmation popup
+    chrome.runtime.sendMessage({
+      action: 'cleanTitle',
+      text: message.text
+    }, (response) => {
+      if (response && response.cleanedTitle) {
+        // Only show confirmation popup if the cleaned title is different from original
+        if (response.cleanedTitle !== message.text) {
+          showConfirmPopup(response.cleanedTitle, message.text);
+        } else {
+          // If they're the same, directly search for the trailer
+          chrome.runtime.sendMessage({
+            action: 'searchTrailer',
+            query: message.text
+          });
+        }
+      } else {
+        // Fallback: directly search with original text
+        chrome.runtime.sendMessage({
+          action: 'searchTrailer',
+          query: message.text
+        });
+      }
+    });
+
+    sendResponse({success: true});
+  }
+
+  return true;
+});
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
-  init();
+  // DOM is already loaded
+  if (document.body) {
+    init();
+  } else {
+    // Body doesn't exist yet, wait for it
+    const observer = new MutationObserver((_mutations, obs) => {
+      if (document.body) {
+        init();
+        obs.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true });
+  }
 }

@@ -143,9 +143,13 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info) => {
+chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "showTrailer" && info.selectionText) {
-    openTrailer(info.selectionText);
+    // Send message to content script to show confirmation popup
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'showConfirmation',
+      text: info.selectionText
+    });
   }
 });
 
@@ -154,6 +158,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "searchTrailer") {
     openTrailer(message.query);
     sendResponse({success: true});
+  } else if (message.action === "cleanTitle") {
+    // Clean the title and send back to content script
+    const cleanedTitle = cleanMovieTitle(message.text);
+    sendResponse({cleanedTitle: cleanedTitle});
   }
   return true;
 });
