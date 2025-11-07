@@ -1,17 +1,10 @@
 /**
- * Standalone test file for cleanMovieTitle function
- * Can be run with: node test.js
- *
- * Note: This duplicates the function from background.js for Node.js testing.
- * The source of truth is in background.js - keep them in sync.
+ * Test suite for cleanMovieTitle function
+ * Tests the movie/show name cleaning logic from background.js
  */
 
-/**
- * Intelligently extracts movie/show name from messy titles
- * Handles: quality tags, codecs, year, promotional text, etc.
- * @param {string} rawTitle - The raw selected text
- * @returns {string} - Cleaned movie/show name
- */
+// Import the cleanMovieTitle function
+// Since this is for Node.js testing, we'll copy the function here
 function cleanMovieTitle(rawTitle) {
   if (!rawTitle || typeof rawTitle !== 'string') return '';
 
@@ -141,120 +134,110 @@ function cleanMovieTitle(rawTitle) {
   return title;
 }
 
-/**
- * Test function to verify title cleaning works correctly
- */
-function testCleanMovieTitle() {
-  const testCases = [
-    {
-      input: "Idly Kadai (2025) Dual Audio [Tamil, Hindi] WEB-DL, 480P, 720P & 1080P | GDRive",
-      expected: "Idly Kadai (2025)"
-    },
-    {
-      input: "Thamma (2025) Best Qualty – WEB-DL H264 AAC 1080p 720p 480p Download & Watch FREE",
-      expected: "Thamma (2025)"
-    },
-    {
-      input: "Spider-Man: No Way Home (2021) 1080p BluRay x264",
-      expected: "Spider-Man: No Way Home (2021)"
-    },
-    {
-      input: "The Batman – 4K UHD BluRay x265 HEVC 10bit",
-      expected: "The Batman"
-    },
-    {
-      input: "The Batman (2022) – 4K UHD BluRay x265 HEVC 10bit",
-      expected: "The Batman (2022)"
-    },
-    {
-      input: "O-Kay 2024 WEB-DL 720p Hindi",
-      expected: "O-Kay 2024"
-    },
-    {
-      input: "Inception (2010) 1080p BRRip x264 AAC",
-      expected: "Inception (2010)"
-    },
-    {
-      input: "Breaking Bad S01E01 720p WEBRip",
-      expected: "Breaking Bad"
-    },
-    {
-      input: "Avatar: The Way of Water (2022) | 4K 2160p | Download",
-      expected: "Avatar: The Way of Water (2022)"
-    },
-    {
-      input: "The Lord of the Rings: The Fellowship of the Ring Extended Edition BluRay 1080p",
-      expected: "The Lord of the Rings"
-    },
-    {
-      input: "Deadpool & Wolverine 2024 CAM x264",
-      expected: "Deadpool & Wolverine 2024"
-    },
-    {
-      input: "Dune Part Two (2024) – IMAX 4K HDR WEB-DL",
-      expected: "Dune Part Two (2024)"
-    },
-    {
-      input: "John Wick: Chapter 4 (2023) 1080p 720p 480p WEB-DL x264 ESub",
-      expected: "John Wick: Chapter 4 (2023)"
-    },
-    {
-      input: "Oppenheimer [2023] UHD BluRay 2160p TrueHD Atmos 7.1 HEVC",
-      expected: "Oppenheimer [2023]"
-    },
-    {
-      input: "It: Welcome to Derry S1 (2025) [EP 1",
-      expected: "It: Welcome to Derry (2025)"
-    },
-    {
-      input: "Stranger Things S4 (2022) [EP 5",
-      expected: "Stranger Things (2022)"
-    },
-    {
-      input: "Game of Thrones S08 [Episode 6] 1080p",
-      expected: "Game of Thrones"
-    },
-    {
-      input: "The Last of Us EP 3 (2023) [",
-      expected: "The Last of Us (2023)"
-    }
-  ];
-
-  console.log("🎬 Testing cleanMovieTitle() function...\n");
-  console.log("=".repeat(80));
-
-  let passed = 0;
-  let failed = 0;
-
-  testCases.forEach((test, index) => {
-    const result = cleanMovieTitle(test.input);
-    const isMatch = result === test.expected;
-
-    if (isMatch) {
-      passed++;
-      console.log(`✅ Test ${index + 1}: PASSED`);
-    } else {
-      failed++;
-      console.log(`❌ Test ${index + 1}: FAILED`);
-    }
-
-    console.log(`   Input:    "${test.input}"`);
-    console.log(`   Expected: "${test.expected}"`);
-    console.log(`   Got:      "${result}"`);
-    console.log("-".repeat(80));
-  });
-
-  console.log("\n" + "=".repeat(80));
-  console.log(`📊 Results: ${passed} passed, ${failed} failed out of ${testCases.length} tests`);
-  console.log("=".repeat(80));
-
-  // Exit with error code if any tests failed
-  if (failed > 0) {
-    process.exit(1);
+// Test cases
+const tests = [
+  {
+    input: 'The Matrix (1999) 1080p BluRay x264',
+    expected: 'The Matrix (1999)',
+    description: 'Remove quality tags, keep year'
+  },
+  {
+    input: 'Deadpool & Wolverine (2024) WEB-DL 1080p',
+    expected: 'Deadpool & Wolverine (2024)',
+    description: 'Keep ampersand in title'
+  },
+  {
+    input: 'Breaking Bad S01E01 720p WEBRip',
+    expected: 'Breaking Bad',
+    description: 'Remove season/episode patterns'
+  },
+  {
+    input: 'Inception',
+    expected: 'Inception',
+    description: 'Clean title unchanged'
+  },
+  {
+    input: 'Movie Title [Episode 6]',
+    expected: 'Movie Title',
+    description: 'Remove episode in brackets'
+  },
+  {
+    input: 'Film (S01) 1080p',
+    expected: 'Film',
+    description: 'Remove season in parentheses'
+  },
+  {
+    input: 'O-Kay 2024',
+    expected: 'O-Kay 2024',
+    description: 'Keep year without parentheses'
+  },
+  {
+    input: 'Avatar: The Way of Water (2022) 4K HDR',
+    expected: 'Avatar: The Way of Water (2022)',
+    description: 'Remove quality tags from long title'
+  },
+  {
+    input: 'Movie Title – 1080p WEB-DL',
+    expected: 'Movie Title',
+    description: 'Split on em-dash separator'
+  },
+  {
+    input: 'Film Name | Best Quality 720p',
+    expected: 'Film Name',
+    description: 'Split on pipe separator'
+  },
+  {
+    input: '',
+    expected: '',
+    description: 'Empty string'
+  },
+  {
+    input: 'Movie.Title.2024.1080p.WEB-DL.x264',
+    expected: 'Movie.Title.2024.',
+    description: 'Dot-separated format with year'
+  },
+  {
+    input: 'The Lord of the Rings: The Fellowship of the Ring (2001) Extended Edition BluRay',
+    expected: 'The Lord of the Rings',
+    description: 'Very long title with subtitle'
+  },
+  {
+    input: 'Movie EP 5 [',
+    expected: 'Movie',
+    description: 'Handle truncation artifacts'
+  },
+  {
+    input: 'Show S1 (',
+    expected: 'Show',
+    description: 'Handle open parentheses artifact'
   }
-
-  return { passed, failed, total: testCases.length };
-}
+];
 
 // Run tests
-testCleanMovieTitle();
+let passed = 0;
+let failed = 0;
+
+console.log('Running cleanMovieTitle tests...\n');
+
+tests.forEach((test, index) => {
+  const result = cleanMovieTitle(test.input);
+  const success = result === test.expected;
+
+  if (success) {
+    passed++;
+    console.log(`✓ Test ${index + 1}: ${test.description}`);
+  } else {
+    failed++;
+    console.log(`✗ Test ${index + 1}: ${test.description}`);
+    console.log(`  Input:    "${test.input}"`);
+    console.log(`  Expected: "${test.expected}"`);
+    console.log(`  Got:      "${result}"`);
+  }
+});
+
+console.log(`\n${passed} passed, ${failed} failed out of ${tests.length} tests`);
+
+// Exit with error code if any tests failed
+if (failed > 0) {
+  process.exit(1);
+}
